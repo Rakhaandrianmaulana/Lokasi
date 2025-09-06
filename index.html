@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peralatan Peta & Lokasi Aman</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        /* Style untuk menyembunyikan panah di input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="bg-gray-200">
+
+    <!-- ===== LAYAR KUNCI & PENGATURAN (AWAL) ===== -->
+    <!-- Layar untuk memasukkan PIN jika sudah diatur -->
+    <div id="lock-screen" class="hidden fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 m-4 text-center">
+            <svg class="mx-auto h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+            <h2 class="text-2xl font-bold text-gray-800 mt-4">Aplikasi Terkunci</h2>
+            <p class="text-gray-500 mt-1">Masukkan PIN untuk melanjutkan.</p>
+            <input type="password" id="pin-input" inputmode="numeric" class="w-full mt-6 px-4 py-3 text-center text-xl tracking-[0.5em] border-gray-300 border rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="••••">
+            <div id="login-error-message" class="text-red-500 text-sm mt-3 h-5"></div>
+            <button id="unlock-btn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Buka Kunci</button>
+        </div>
+    </div>
+
+    <!-- Layar untuk mengatur PIN pertama kali -->
+    <div id="setup-screen" class="hidden fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 m-4 text-center">
+             <svg class="mx-auto h-12 w-12 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <h2 class="text-2xl font-bold text-gray-800 mt-4">Selamat Datang!</h2>
+            <p class="text-gray-500 mt-1">Amankan aplikasi dengan membuat PIN baru (hanya angka).</p>
+            <div class="space-y-4 mt-6">
+                <input type="password" id="new-pin-input" inputmode="numeric" class="w-full px-4 py-3 border-gray-300 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Buat PIN (misal: 1234)">
+                <input type="password" id="confirm-pin-input" inputmode="numeric" class="w-full px-4 py-3 border-gray-300 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Konfirmasi PIN">
+            </div>
+            <div id="setup-error-message" class="text-red-500 text-sm mt-3 h-5"></div>
+            <button id="set-pin-btn" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">Atur & Kunci Aplikasi</button>
+        </div>
+    </div>
+    
+    <!-- ===== APLIKASI UTAMA (AWALNYA TERSEMBUNYI) ===== -->
+    <div id="main-app" class="hidden w-full max-w-2xl bg-white rounded-xl shadow-2xl p-8 m-4 min-h-[90vh]">
+        <header class="flex justify-between items-center mb-10">
+            <div class="flex items-center space-x-3">
+                 <svg class="h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Peralatan Peta</h1>
+                    <p class="text-sm text-gray-500">Aman & Terkunci</p>
+                </div>
+            </div>
+            <button id="lock-app-btn" title="Kunci Aplikasi" class="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-600 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3A5.25 5.25 0 0 0 12 1.5Zm-3.75 5.25a3.75 3.75 0 1 0 7.5 0v3h-7.5v-3Z" clip-rule="evenodd" /></svg>
+            </button>
+        </header>
+
+        <main class="space-y-8">
+            <!-- ... (Sisa konten aplikasi sama seperti sebelumnya) ... -->
+             <section class="bg-gray-50 p-5 rounded-lg border">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Cari Lokasi Berdasarkan Nama</h2>
+                <div class="relative">
+                    <input type="text" id="place-search-input" class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg" placeholder="Ketik nama kota atau area...">
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Hotel</button>
+                    <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Restoran</button>
+                    <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Resort</button>
+                    <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">SPBU</button>
+                </div>
+                 <div id="place-search-message" class="text-sm text-red-500 mt-2 text-center h-5"></div>
+                <button id="search-place-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Cari & Buka</button>
+            </section>
+            
+            <section class="bg-gray-50 p-5 rounded-lg border">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Cari Koordinat Manual</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="latitude" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                        <input type="text" id="latitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="-6.2088">
+                    </div>
+                    <div>
+                        <label for="longitude" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                        <input type="text" id="longitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="106.8456">
+                    </div>
+                </div>
+                <div id="coord-message-area" class="text-sm mt-3 text-center h-5"></div>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <button id="get-location-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2.5 px-4 rounded-lg transition">Lokasi Saya</button>
+                    <button id="open-maps-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg transition">Buka Koordinat</button>
+                </div>
+            </section>
+            
+            <section class="bg-gray-50 p-5 rounded-lg border">
+                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Generator Data Acak</h2>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="generate-random-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition">10 Koordinat Acak</button>
+                    <button id="generate-fake-data-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg transition">3 Profil Palsu</button>
+                 </div>
+            </section>
+            
+            <section id="results-container" class="mt-8 hidden">
+                 <h2 id="results-title" class="text-2xl font-semibold text-gray-800 border-b pb-3 mb-4">Hasil</h2>
+                 <div id="results-list" class="space-y-4"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+    // --- Kunci Keamanan & Elemen DOM ---
+    const LOCK_PIN_KEY = 'secure_app_lock_pin';
+
+    // Elemen Layar Kunci & Pengaturan
+    const lockScreen = document.getElementById('lock-screen');
+    const setupScreen = document.getElementById('setup-screen');
+    const pinInput = document.getElementById('pin-input');
+    const unlockBtn = document.getElementById('unlock-btn');
+    const newPinInput = document.getElementById('new-pin-input');
+    const confirmPinInput = document.getElementById('confirm-pin-input');
+    const setPinBtn = document.getElementById('set-pin-btn');
+    const loginErrorMessage = document.getElementById('login-error-message');
+    const setupErrorMessage = document.getElementById('setup-error-message');
+
+    // Elemen Aplikasi Utama
+    const mainApp = document.getElementById('main-app');
+    const lockAppBtn = document.getElementById('lock-app-btn');
+    const placeInput = document.getElementById('place-search-input');
+    const searchPlaceBtn = document.getElementById('search-place-btn');
+    const placeSearchMessage = document.getElementById('place-search-message');
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const openMapsBtn = document.getElementById('open-maps-btn');
+    const coordMessageArea = document.getElementById('coord-message-area');
+    const getLocationBtn = document.getElementById('get-location-btn');
+    const generateRandomBtn = document.getElementById('generate-random-btn');
+    const generateFakeDataBtn = document.getElementById('generate-fake-data-btn');
+    const resultsContainer = document.getElementById('results-container');
+    const resultsTitle = document.getElementById('results-title');
+    const resultsList = document.getElementById('results-list');
+    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+
+    // --- Logika Sistem Keamanan ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const storedPin = localStorage.getItem(LOCK_PIN_KEY);
+        if (storedPin) {
+            lockScreen.classList.remove('hidden');
+        } else {
+            setupScreen.classList.remove('hidden');
+        }
+    });
+
+    function showApp() {
+        mainApp.classList.remove('hidden');
+        lockScreen.classList.add('hidden');
+        setupScreen.classList.add('hidden');
+    }
+
+    setPinBtn.addEventListener('click', () => {
+        const newPin = newPinInput.value;
+        const confirmPin = confirmPinInput.value;
+
+        if (!newPin || !confirmPin) {
+            setupErrorMessage.textContent = 'Semua kolom harus diisi.';
+            return;
+        }
+        if (newPin !== confirmPin) {
+            setupErrorMessage.textContent = 'PIN tidak cocok. Coba lagi.';
+            return;
+        }
+        if (!/^\d{4,}$/.test(newPin)) {
+             setupErrorMessage.textContent = 'PIN minimal harus 4 digit angka.';
+            return;
+        }
+
+        localStorage.setItem(LOCK_PIN_KEY, newPin);
+        showApp();
+    });
+
+    function attemptUnlock() {
+         const storedPin = localStorage.getItem(LOCK_PIN_KEY);
+         const enteredPin = pinInput.value;
+         if (enteredPin === storedPin) {
+             showApp();
+             pinInput.value = '';
+             loginErrorMessage.textContent = '';
+         } else {
+             loginErrorMessage.textContent = 'PIN Salah. Coba lagi.';
+             pinInput.value = '';
+         }
+    }
+    
+    unlockBtn.addEventListener('click', attemptUnlock);
+    pinInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') attemptUnlock();
+    });
+
+    lockAppBtn.addEventListener('click', () => {
+        mainApp.classList.add('hidden');
+        lockScreen.classList.remove('hidden');
+    });
+
+    // --- Logika Fitur Aplikasi (sama seperti sebelumnya, ditambah saran) ---
+    function showMessage(element, message, type = 'error') { /* ... (fungsi sama) ... */ }
+    function openInGmaps(lat, lon) { /* ... (fungsi sama) ... */ }
+    function displayResults(title, contentGenerator) { /* ... (fungsi sama) ... */ }
+    
+    // Fitur Baru: Tombol Saran
+    suggestionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const place = placeInput.value.trim();
+            const suggestion = btn.textContent; // "Hotel", "Restoran", etc.
+            if(place){
+                placeInput.value = `${suggestion} di ${place}`;
+            } else {
+                placeInput.placeholder = `Cari ${suggestion} di...`;
+            }
+            placeInput.focus();
+        });
+    });
+
+    // ... (Sisa event listener dan fungsi lainnya tetap sama)
+    // 1. Cari Berdasarkan Nama
+    function searchPlace() {
+        const place = placeInput.value.trim();
+        if (!place) return showMessage(placeSearchMessage, 'Nama tempat tidak boleh kosong.');
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+        window.open(url, '_blank');
+    }
+    searchPlaceBtn.addEventListener('click', searchPlace);
+    placeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlace(); });
+
+    // 2. Buka Peta Manual
+    openMapsBtn.addEventListener('click', () => {
+        const lat = latitudeInput.value.trim();
+        const lon = longitudeInput.value.trim();
+        if (!lat || !lon) return showMessage(coordMessageArea, 'Koordinat wajib diisi.');
+        if (isNaN(lat) || isNaN(lon)) return showMessage(coordMessageArea, 'Input harus angka.');
+        openInGmaps(lat, lon);
+    });
+
+    // 3. Dapatkan Lokasi Saya
+    getLocationBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) return showMessage(coordMessageArea, 'Geolocation tidak didukung.');
+        showMessage(coordMessageArea, 'Meminta izin lokasi...', 'info');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                latitudeInput.value = pos.coords.latitude.toFixed(6);
+                longitudeInput.value = pos.coords.longitude.toFixed(6);
+                showMessage(coordMessageArea, 'Lokasi berhasil didapatkan!', 'info');
+            },
+            () => showMessage(coordMessageArea, 'Gagal mendapatkan lokasi.')
+        );
+    });
+
+    // 4. Hasilkan 10 Koordinat Acak
+    generateRandomBtn.addEventListener('click', () => {
+        displayResults('Hasil 10 Koordinat Acak', (list) => {
+            for (let i = 0; i < 10; i++) {
+                const lat = (Math.random() * 180 - 90).toFixed(6);
+                const lon = (Math.random() * 360 - 180).toFixed(6);
+                const item = document.createElement('div');
+                item.className = 'bg-gray-50 p-3 rounded-lg flex justify-between items-center border';
+                item.innerHTML = `<span class="text-sm text-gray-700 font-mono">Lat: ${lat}, Lon: ${lon}</span><button onclick="openInGmaps(${lat}, ${lon})" class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full hover:bg-blue-200">Buka</button>`;
+                list.appendChild(item);
+            }
+        });
+    });
+    
+    // 5. Hasilkan 3 Profil Palsu
+    // (Fungsi generateRandomPhone dan getRandomName tetap sama)
+     function generateRandomPhone() { /* ... (fungsi sama) ... */ }
+     function getRandomName() { /* ... (fungsi sama) ... */ }
+    
+    generateFakeDataBtn.addEventListener('click', () => {
+        // ... (Logika sama seperti sebelumnya) ...
+        const fakeLocations = [
+            { city: "Tokyo", country: "Jepang", lat: 35.6895, lon: 139.6917 },
+            { city: "Paris", country: "Prancis", lat: 48.8566, lon: 2.3522 },
+            { city: "New York", country: "USA", lat: 40.7128, lon: -74.0060 },
+            { city: "Sydney", country: "Australia", lat: -33.8688, lon: 151.2093 },
+            { city: "Kairo", country: "Mesir", lat: 30.0444, lon: 31.2357 },
+            { city: "Rio de Janeiro", country: "Brasil", lat: -22.9068, lon: -43.1729 }
+        ];
+        const selected = fakeLocations.sort(() => 0.5 - Math.random()).slice(0, 3);
+        displayResults('Hasil 3 Profil Palsu', (list) => {
+            selected.forEach(loc => {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-4 rounded-lg border shadow-sm';
+                item.innerHTML = `<div class="flex justify-between items-start"><div><p class="font-bold text-lg text-gray-900">${getRandomName()}</p><p class="text-sm text-gray-500">${generateRandomPhone()}</p><p class="text-sm font-semibold text-gray-700 mt-2">${loc.city}, ${loc.country}</p><p class="text-xs text-gray-500 font-mono">Lat: ${loc.lat}, Lon: ${loc.lon}</p></div><button onclick="openInGmaps(${loc.lat}, ${loc.lon})" class="bg-blue-100 text-blue-800 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-200">Buka Peta</button></div>`;
+                list.appendChild(item);
+            });
+        });
+    });
+
+    </script>
+</body>
+</html>
+
