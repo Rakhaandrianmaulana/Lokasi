@@ -3,101 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peralatan Peta & Lokasi Aman</title>
+    <title>Peralatan Peta & Lokasi Canggih</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
-        /* Style untuk menyembunyikan panah di input number */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
-        }
-        input[type=number] { -moz-appearance: textfield; }
+        body { font-family: 'Inter', sans-serif; }
+        .pattern-container { touch-action: none; /* Mencegah scrolling saat menggambar pola */ }
+        .pattern-dot { width: 12px; height: 12px; background-color: #cbd5e1; border-radius: 50%; transition: background-color 0.2s; z-index: 10; }
+        .pattern-dot.active { background-color: #3b82f6; transform: scale(1.2); }
+        .pattern-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; }
+        .pattern-line { stroke: #3b82f6; stroke-width: 3; stroke-linecap: round; fill: none; }
     </style>
 </head>
-<body class="bg-gray-200">
+<body class="bg-gray-200 flex items-center justify-center min-h-screen">
 
-    <!-- ===== LAYAR KUNCI & PENGATURAN (AWAL) ===== -->
-    <!-- Layar untuk memasukkan PIN jika sudah diatur -->
-    <div id="lock-screen" class="hidden fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 m-4 text-center">
+    <!-- ===== LAYAR KUNCI & PENGATURAN ===== -->
+    <div id="security-overlay" class="hidden fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        
+        <!-- Layar untuk memasukkan PIN/Pola -->
+        <div id="lock-screen" class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 text-center hidden">
             <svg class="mx-auto h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
             <h2 class="text-2xl font-bold text-gray-800 mt-4">Aplikasi Terkunci</h2>
-            <p class="text-gray-500 mt-1">Masukkan PIN untuk melanjutkan.</p>
-            <input type="password" id="pin-input" inputmode="numeric" class="w-full mt-6 px-4 py-3 text-center text-xl tracking-[0.5em] border-gray-300 border rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="••••">
-            <div id="login-error-message" class="text-red-500 text-sm mt-3 h-5"></div>
-            <button id="unlock-btn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Buka Kunci</button>
-        </div>
-    </div>
-
-    <!-- Layar untuk mengatur PIN pertama kali -->
-    <div id="setup-screen" class="hidden fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 m-4 text-center">
-             <svg class="mx-auto h-12 w-12 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            <h2 class="text-2xl font-bold text-gray-800 mt-4">Selamat Datang!</h2>
-            <p class="text-gray-500 mt-1">Amankan aplikasi dengan membuat PIN baru (hanya angka).</p>
-            <div class="space-y-4 mt-6">
-                <input type="password" id="new-pin-input" inputmode="numeric" class="w-full px-4 py-3 border-gray-300 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Buat PIN (misal: 1234)">
-                <input type="password" id="confirm-pin-input" inputmode="numeric" class="w-full px-4 py-3 border-gray-300 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Konfirmasi PIN">
+            <p id="lock-instruction" class="text-gray-500 mt-1">Masukkan PIN untuk melanjutkan.</p>
+            
+            <div id="pin-login-container" class="mt-6 hidden">
+                <input type="password" id="pin-input" inputmode="numeric" class="w-full text-center text-xl tracking-[0.5em] border-gray-300 border rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="••••">
+                <button id="unlock-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Buka Kunci</button>
             </div>
-            <div id="setup-error-message" class="text-red-500 text-sm mt-3 h-5"></div>
-            <button id="set-pin-btn" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">Atur & Kunci Aplikasi</button>
+
+            <div id="pattern-login-container" class="mt-6 hidden">
+                <div id="pattern-lock-grid-login" class="pattern-container relative w-64 h-64 mx-auto grid grid-cols-3 gap-6 p-4"></div>
+            </div>
+            <div id="login-error-message" class="text-red-500 text-sm mt-3 h-5"></div>
+        </div>
+
+        <!-- Layar untuk mengatur PIN/Pola pertama kali -->
+        <div id="setup-screen" class="w-full max-w-sm bg-white rounded-xl shadow-2xl p-8 hidden">
+            <h2 class="text-2xl font-bold text-gray-800 text-center">Amankan Aplikasi Anda</h2>
+            <p class="text-gray-500 mt-1 text-center">Pilih metode keamanan untuk memulai.</p>
+            <div class="mt-6 border-b border-gray-200">
+                <nav class="flex -mb-px space-x-6">
+                    <button id="setup-pin-tab" class="py-3 px-1 border-b-2 font-medium text-sm">PIN</button>
+                    <button id="setup-pattern-tab" class="py-3 px-1 border-b-2 font-medium text-sm">Pola</button>
+                </nav>
+            </div>
+            
+            <div id="pin-setup-container" class="mt-6 hidden">
+                <input type="password" id="new-pin-input" inputmode="numeric" class="w-full border-gray-300 border rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2" placeholder="Buat PIN (min. 4 angka)">
+                <input type="password" id="confirm-pin-input" inputmode="numeric" class="w-full border-gray-300 border rounded-lg mt-3 focus:ring-blue-500 focus:border-blue-500 p-2" placeholder="Konfirmasi PIN">
+                <button id="set-pin-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Atur & Simpan PIN</button>
+            </div>
+
+            <div id="pattern-setup-container" class="mt-6 hidden">
+                <p id="pattern-instruction" class="text-center text-sm text-gray-600 mb-2 h-10">Gambar pola kunci (minimal 4 titik)</p>
+                <div id="pattern-lock-grid-setup" class="pattern-container relative w-64 h-64 mx-auto grid grid-cols-3 gap-6 p-4 bg-gray-50 rounded-lg"></div>
+            </div>
+            <div id="setup-error-message" class="text-red-500 text-sm mt-3 h-5 text-center"></div>
         </div>
     </div>
     
-    <!-- ===== APLIKASI UTAMA (AWALNYA TERSEMBUNYI) ===== -->
-    <div id="main-app" class="hidden w-full max-w-2xl bg-white rounded-xl shadow-2xl p-8 m-4 min-h-[90vh]">
+    <!-- ===== APLIKASI UTAMA ===== -->
+    <div id="main-app" class="hidden w-full max-w-2xl bg-white rounded-xl shadow-2xl p-8 m-4 my-8">
         <header class="flex justify-between items-center mb-10">
             <div class="flex items-center space-x-3">
                  <svg class="h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Peralatan Peta</h1>
-                    <p class="text-sm text-gray-500">Aman & Terkunci</p>
+                    <p class="text-sm text-gray-500">Aman & Fungsional</p>
                 </div>
             </div>
             <button id="lock-app-btn" title="Kunci Aplikasi" class="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-600 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3A5.25 5.25 0 0 0 12 1.5Zm-3.75 5.25a3.75 3.75 0 1 0 7.5 0v3h-7.5v-3Z" clip-rule="evenodd" /></svg>
             </button>
         </header>
-
-        <main class="space-y-8">
-            <!-- ... (Sisa konten aplikasi sama seperti sebelumnya) ... -->
-             <section class="bg-gray-50 p-5 rounded-lg border">
+        <main class="space-y-6">
+            <section class="bg-gray-50 p-5 rounded-lg border">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Cari Lokasi Berdasarkan Nama</h2>
-                <div class="relative">
-                    <input type="text" id="place-search-input" class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg" placeholder="Ketik nama kota atau area...">
-                </div>
+                <div class="relative"><input type="text" id="place-search-input" class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Ketik nama kota atau area..."></div>
                 <div class="mt-3 flex flex-wrap gap-2">
                     <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Hotel</button>
                     <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Restoran</button>
                     <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">Resort</button>
                     <button class="suggestion-btn text-xs bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-800 font-semibold py-1 px-3 rounded-full transition">SPBU</button>
                 </div>
-                 <div id="place-search-message" class="text-sm text-red-500 mt-2 text-center h-5"></div>
+                <div id="place-search-message" class="text-sm text-red-500 mt-2 text-center h-5"></div>
                 <button id="search-place-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Cari & Buka</button>
             </section>
             
             <section class="bg-gray-50 p-5 rounded-lg border">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Cari Koordinat Manual</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="latitude" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                        <input type="text" id="latitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="-6.2088">
-                    </div>
-                    <div>
-                        <label for="longitude" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                        <input type="text" id="longitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="106.8456">
-                    </div>
+                    <div><label for="latitude" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label><input type="text" id="latitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="-6.2088"></div>
+                    <div><label for="longitude" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label><input type="text" id="longitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="106.8456"></div>
                 </div>
                 <div id="coord-message-area" class="text-sm mt-3 text-center h-5"></div>
                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <button id="get-location-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2.5 px-4 rounded-lg transition">Lokasi Saya</button>
+                    <button id="get-location-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2.5 px-4 rounded-lg transition">Lokasi Saya</button>
                     <button id="open-maps-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg transition">Buka Koordinat</button>
                 </div>
+            </section>
+
+            <section id="history-section" class="bg-gray-50 p-5 rounded-lg border hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-semibold text-gray-800">Riwayat Pencarian</h2>
+                    <button id="clear-history-btn" class="text-xs text-red-600 hover:underline font-medium">Hapus Semua</button>
+                </div>
+                <div id="history-list" class="space-y-2 max-h-48 overflow-y-auto pr-2"></div>
             </section>
             
             <section class="bg-gray-50 p-5 rounded-lg border">
@@ -108,7 +121,7 @@
                  </div>
             </section>
             
-            <section id="results-container" class="mt-8 hidden">
+            <section id="results-container" class="mt-6 hidden">
                  <h2 id="results-title" class="text-2xl font-semibold text-gray-800 border-b pb-3 mb-4">Hasil</h2>
                  <div id="results-list" class="space-y-4"></div>
             </section>
@@ -116,189 +129,344 @@
     </div>
 
     <script>
-    // --- Kunci Keamanan & Elemen DOM ---
-    const LOCK_PIN_KEY = 'secure_app_lock_pin';
+    // --- KEY PENYIMPANAN & PENGATURAN ---
+    const LOCK_TYPE_KEY = 'secure_app_lock_type';
+    const LOCK_SECRET_KEY = 'secure_app_lock_secret';
+    const HISTORY_KEY = 'location_app_history';
+    const MIN_PATTERN_LENGTH = 4;
 
-    // Elemen Layar Kunci & Pengaturan
+    // --- PEMILIHAN ELEMEN DOM ---
+    const securityOverlay = document.getElementById('security-overlay');
     const lockScreen = document.getElementById('lock-screen');
     const setupScreen = document.getElementById('setup-screen');
+    const mainApp = document.getElementById('main-app');
+    const lockInstruction = document.getElementById('lock-instruction');
+    const pinLoginContainer = document.getElementById('pin-login-container');
+    const patternLoginContainer = document.getElementById('pattern-login-container');
+    const loginErrorMessage = document.getElementById('login-error-message');
     const pinInput = document.getElementById('pin-input');
     const unlockBtn = document.getElementById('unlock-btn');
+    const setupPinTab = document.getElementById('setup-pin-tab');
+    const setupPatternTab = document.getElementById('setup-pattern-tab');
+    const pinSetupContainer = document.getElementById('pin-setup-container');
+    const patternSetupContainer = document.getElementById('pattern-setup-container');
     const newPinInput = document.getElementById('new-pin-input');
     const confirmPinInput = document.getElementById('confirm-pin-input');
     const setPinBtn = document.getElementById('set-pin-btn');
-    const loginErrorMessage = document.getElementById('login-error-message');
+    const patternInstruction = document.getElementById('pattern-instruction');
     const setupErrorMessage = document.getElementById('setup-error-message');
-
-    // Elemen Aplikasi Utama
-    const mainApp = document.getElementById('main-app');
     const lockAppBtn = document.getElementById('lock-app-btn');
     const placeInput = document.getElementById('place-search-input');
     const searchPlaceBtn = document.getElementById('search-place-btn');
+    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
     const placeSearchMessage = document.getElementById('place-search-message');
     const latitudeInput = document.getElementById('latitude');
     const longitudeInput = document.getElementById('longitude');
-    const openMapsBtn = document.getElementById('open-maps-btn');
     const coordMessageArea = document.getElementById('coord-message-area');
     const getLocationBtn = document.getElementById('get-location-btn');
+    const openMapsBtn = document.getElementById('open-maps-btn');
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
     const generateRandomBtn = document.getElementById('generate-random-btn');
     const generateFakeDataBtn = document.getElementById('generate-fake-data-btn');
     const resultsContainer = document.getElementById('results-container');
     const resultsTitle = document.getElementById('results-title');
     const resultsList = document.getElementById('results-list');
-    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+    
+    // --- FUNGSI BANTUAN ---
+    const showMessage = (el, msg, type = 'error') => {
+        el.textContent = msg;
+        el.className = `text-sm mt-3 h-5 text-center ${type === 'error' ? 'text-red-500' : 'text-green-600'}`;
+        setTimeout(() => el.textContent = '', 3000);
+    };
 
-    // --- Logika Sistem Keamanan ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const storedPin = localStorage.getItem(LOCK_PIN_KEY);
-        if (storedPin) {
-            lockScreen.classList.remove('hidden');
-        } else {
-            setupScreen.classList.remove('hidden');
-        }
-    });
+    const openInGmaps = (url) => window.open(url, '_blank');
 
-    function showApp() {
-        mainApp.classList.remove('hidden');
-        lockScreen.classList.add('hidden');
-        setupScreen.classList.add('hidden');
+    // --- BAGIAN: RIWAYAT (HISTORY) ---
+    const getHistory = () => JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    const saveHistory = (history) => localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+    function addHistoryItem(type, value) {
+        let history = getHistory();
+        if (history.length > 0 && history[0].value === value) return;
+        history.unshift({ type, value });
+        if (history.length > 20) history = history.slice(0, 20);
+        saveHistory(history);
+        renderHistory();
     }
 
-    setPinBtn.addEventListener('click', () => {
-        const newPin = newPinInput.value;
-        const confirmPin = confirmPinInput.value;
-
-        if (!newPin || !confirmPin) {
-            setupErrorMessage.textContent = 'Semua kolom harus diisi.';
+    function renderHistory() {
+        const history = getHistory();
+        if (history.length === 0) {
+            historySection.classList.add('hidden');
             return;
         }
-        if (newPin !== confirmPin) {
-            setupErrorMessage.textContent = 'PIN tidak cocok. Coba lagi.';
-            return;
-        }
-        if (!/^\d{4,}$/.test(newPin)) {
-             setupErrorMessage.textContent = 'PIN minimal harus 4 digit angka.';
-            return;
-        }
-
-        localStorage.setItem(LOCK_PIN_KEY, newPin);
-        showApp();
-    });
-
-    function attemptUnlock() {
-         const storedPin = localStorage.getItem(LOCK_PIN_KEY);
-         const enteredPin = pinInput.value;
-         if (enteredPin === storedPin) {
-             showApp();
-             pinInput.value = '';
-             loginErrorMessage.textContent = '';
-         } else {
-             loginErrorMessage.textContent = 'PIN Salah. Coba lagi.';
-             pinInput.value = '';
-         }
-    }
-    
-    unlockBtn.addEventListener('click', attemptUnlock);
-    pinInput.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter') attemptUnlock();
-    });
-
-    lockAppBtn.addEventListener('click', () => {
-        mainApp.classList.add('hidden');
-        lockScreen.classList.remove('hidden');
-    });
-
-    // --- Logika Fitur Aplikasi (sama seperti sebelumnya, ditambah saran) ---
-    function showMessage(element, message, type = 'error') { /* ... (fungsi sama) ... */ }
-    function openInGmaps(lat, lon) { /* ... (fungsi sama) ... */ }
-    function displayResults(title, contentGenerator) { /* ... (fungsi sama) ... */ }
-    
-    // Fitur Baru: Tombol Saran
-    suggestionBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const place = placeInput.value.trim();
-            const suggestion = btn.textContent; // "Hotel", "Restoran", etc.
-            if(place){
-                placeInput.value = `${suggestion} di ${place}`;
-            } else {
-                placeInput.placeholder = `Cari ${suggestion} di...`;
-            }
-            placeInput.focus();
+        historySection.classList.remove('hidden');
+        historyList.innerHTML = '';
+        history.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'bg-white p-2 rounded border text-sm text-gray-700 cursor-pointer hover:bg-gray-100 flex justify-between items-center';
+            div.innerHTML = `<span>${item.value}</span><span class="text-xs text-gray-400">${item.type === 'search' ? 'Nama' : 'Koordinat'}</span>`;
+            div.onclick = () => {
+                if (item.type === 'search') {
+                    placeInput.value = item.value;
+                    searchPlace();
+                } else if (item.type === 'coords') {
+                    const [lat, lon] = item.value.split(',');
+                    latitudeInput.value = lat.trim();
+                    longitudeInput.value = lon.trim();
+                    openCoordsInGmaps();
+                }
+            };
+            historyList.appendChild(div);
         });
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+        if (confirm('Anda yakin ingin menghapus semua riwayat?')) {
+            localStorage.removeItem(HISTORY_KEY);
+            renderHistory();
+        }
     });
 
-    // ... (Sisa event listener dan fungsi lainnya tetap sama)
-    // 1. Cari Berdasarkan Nama
+    // --- BAGIAN: FITUR APLIKASI INTI ---
     function searchPlace() {
         const place = placeInput.value.trim();
         if (!place) return showMessage(placeSearchMessage, 'Nama tempat tidak boleh kosong.');
-        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
-        window.open(url, '_blank');
+        addHistoryItem('search', place);
+        openInGmaps(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`);
     }
-    searchPlaceBtn.addEventListener('click', searchPlace);
-    placeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlace(); });
 
-    // 2. Buka Peta Manual
-    openMapsBtn.addEventListener('click', () => {
+    function openCoordsInGmaps() {
         const lat = latitudeInput.value.trim();
         const lon = longitudeInput.value.trim();
         if (!lat || !lon) return showMessage(coordMessageArea, 'Koordinat wajib diisi.');
-        if (isNaN(lat) || isNaN(lon)) return showMessage(coordMessageArea, 'Input harus angka.');
-        openInGmaps(lat, lon);
-    });
+        if (isNaN(lat) || isNaN(lon)) return showMessage(coordMessagearea, 'Input harus berupa angka.');
+        addHistoryItem('coords', `${lat}, ${lon}`);
+        openInGmaps(`https://www.google.com/maps?q=${lat},${lon}`);
+    }
 
-    // 3. Dapatkan Lokasi Saya
     getLocationBtn.addEventListener('click', () => {
-        if (!navigator.geolocation) return showMessage(coordMessageArea, 'Geolocation tidak didukung.');
+        if (!navigator.geolocation) return showMessage(coordMessageArea, 'Geolocation tidak didukung browser ini.');
         showMessage(coordMessageArea, 'Meminta izin lokasi...', 'info');
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
+            pos => {
                 latitudeInput.value = pos.coords.latitude.toFixed(6);
                 longitudeInput.value = pos.coords.longitude.toFixed(6);
                 showMessage(coordMessageArea, 'Lokasi berhasil didapatkan!', 'info');
             },
-            () => showMessage(coordMessageArea, 'Gagal mendapatkan lokasi.')
+            () => showMessage(coordMessageArea, 'Gagal mendapatkan lokasi. Pastikan izin telah diberikan.')
         );
     });
 
-    // 4. Hasilkan 10 Koordinat Acak
-    generateRandomBtn.addEventListener('click', () => {
-        displayResults('Hasil 10 Koordinat Acak', (list) => {
-            for (let i = 0; i < 10; i++) {
-                const lat = (Math.random() * 180 - 90).toFixed(6);
-                const lon = (Math.random() * 360 - 180).toFixed(6);
-                const item = document.createElement('div');
-                item.className = 'bg-gray-50 p-3 rounded-lg flex justify-between items-center border';
-                item.innerHTML = `<span class="text-sm text-gray-700 font-mono">Lat: ${lat}, Lon: ${lon}</span><button onclick="openInGmaps(${lat}, ${lon})" class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full hover:bg-blue-200">Buka</button>`;
-                list.appendChild(item);
-            }
-        });
+    // --- BAGIAN: SISTEM KEAMANAN (PIN & POLA) ---
+    function unlockApp() {
+        securityOverlay.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+        renderHistory();
+    }
+    
+    function lockApp() {
+        mainApp.classList.add('hidden');
+        securityOverlay.classList.remove('hidden');
+        const lockType = localStorage.getItem(LOCK_TYPE_KEY);
+        lockScreen.classList.remove('hidden');
+        setupScreen.classList.add('hidden');
+        
+        pinLoginContainer.classList.toggle('hidden', lockType !== 'pin');
+        patternLoginContainer.classList.toggle('hidden', lockType !== 'pattern');
+        lockInstruction.textContent = lockType === 'pin' ? 'Masukkan PIN Anda.' : 'Gambar pola kunci Anda.';
+    }
+
+    // Setup tabs
+    function setupSecurityTabs() {
+        const setActiveTab = (activeTab) => {
+            const tabs = { 'pin': setupPinTab, 'pattern': setupPatternTab };
+            const containers = { 'pin': pinSetupContainer, 'pattern': patternSetupContainer };
+            Object.keys(tabs).forEach(key => {
+                const isActive = key === activeTab;
+                tabs[key].className = `py-3 px-1 border-b-2 font-medium text-sm ${isActive ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'}`;
+                containers[key].classList.toggle('hidden', !isActive);
+            });
+        };
+        setupPinTab.addEventListener('click', () => setActiveTab('pin'));
+        setupPatternTab.addEventListener('click', () => setActiveTab('pattern'));
+        setActiveTab('pin'); // Default
+    }
+
+    // Logic untuk PIN
+    setPinBtn.addEventListener('click', () => {
+        const newPin = newPinInput.value;
+        const confirmPin = confirmPinInput.value;
+        if (!newPin || !confirmPin) return showMessage(setupErrorMessage, 'Semua kolom PIN wajib diisi.');
+        if (newPin.length < 4) return showMessage(setupErrorMessage, 'PIN minimal harus 4 digit.');
+        if (newPin !== confirmPin) return showMessage(setupErrorMessage, 'PIN konfirmasi tidak cocok.');
+        localStorage.setItem(LOCK_TYPE_KEY, 'pin');
+        localStorage.setItem(LOCK_SECRET_KEY, newPin);
+        unlockApp();
     });
-    
-    // 5. Hasilkan 3 Profil Palsu
-    // (Fungsi generateRandomPhone dan getRandomName tetap sama)
-     function generateRandomPhone() { /* ... (fungsi sama) ... */ }
-     function getRandomName() { /* ... (fungsi sama) ... */ }
-    
-    generateFakeDataBtn.addEventListener('click', () => {
-        // ... (Logika sama seperti sebelumnya) ...
-        const fakeLocations = [
-            { city: "Tokyo", country: "Jepang", lat: 35.6895, lon: 139.6917 },
-            { city: "Paris", country: "Prancis", lat: 48.8566, lon: 2.3522 },
-            { city: "New York", country: "USA", lat: 40.7128, lon: -74.0060 },
-            { city: "Sydney", country: "Australia", lat: -33.8688, lon: 151.2093 },
-            { city: "Kairo", country: "Mesir", lat: 30.0444, lon: 31.2357 },
-            { city: "Rio de Janeiro", country: "Brasil", lat: -22.9068, lon: -43.1729 }
-        ];
-        const selected = fakeLocations.sort(() => 0.5 - Math.random()).slice(0, 3);
-        displayResults('Hasil 3 Profil Palsu', (list) => {
-            selected.forEach(loc => {
-                const item = document.createElement('div');
-                item.className = 'bg-white p-4 rounded-lg border shadow-sm';
-                item.innerHTML = `<div class="flex justify-between items-start"><div><p class="font-bold text-lg text-gray-900">${getRandomName()}</p><p class="text-sm text-gray-500">${generateRandomPhone()}</p><p class="text-sm font-semibold text-gray-700 mt-2">${loc.city}, ${loc.country}</p><p class="text-xs text-gray-500 font-mono">Lat: ${loc.lat}, Lon: ${loc.lon}</p></div><button onclick="openInGmaps(${loc.lat}, ${loc.lon})" class="bg-blue-100 text-blue-800 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-200">Buka Peta</button></div>`;
-                list.appendChild(item);
+
+    unlockBtn.addEventListener('click', () => {
+        if (pinInput.value === localStorage.getItem(LOCK_SECRET_KEY)) {
+            pinInput.value = '';
+            unlockApp();
+        } else {
+            showMessage(loginErrorMessage, 'PIN Salah. Coba lagi.');
+            pinInput.value = '';
+        }
+    });
+    pinInput.addEventListener('keydown', (e) => e.key === 'Enter' && unlockBtn.click());
+
+
+    // Logic untuk Kunci Pola (Fungsional Penuh)
+    function initPatternGrid(gridElement, onPatternComplete) {
+        gridElement.innerHTML = '';
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'pattern-svg');
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('class', 'pattern-line');
+        svg.appendChild(polyline);
+        gridElement.appendChild(svg);
+
+        const dots = [];
+        for (let i = 0; i < 9; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'pattern-dot';
+            dot.dataset.index = i;
+            gridElement.appendChild(dot);
+            dots.push(dot);
+        }
+
+        let isDrawing = false;
+        let currentPattern = [];
+        let dotCoords = [];
+
+        const getCoords = (e) => {
+            const rect = gridElement.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        };
+        
+        const startDraw = (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            dotCoords = dots.map(d => ({ x: d.offsetLeft + d.offsetWidth / 2, y: d.offsetTop + d.offsetHeight / 2 }));
+            resetPattern();
+        };
+
+        const draw = (e) => {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const { x, y } = getCoords(e);
+            
+            const points = currentPattern.map(i => `${dotCoords[i].x},${dotCoords[i].y}`).join(' ');
+            polyline.setAttribute('points', `${points} ${x},${y}`);
+
+            const dot = document.elementFromPoint(
+                (e.touches ? e.touches[0] : e).clientX, 
+                (e.touches ? e.touches[0] : e).clientY
+            );
+            if (dot && dot.classList.contains('pattern-dot') && !dot.classList.contains('active')) {
+                const index = parseInt(dot.dataset.index);
+                if (!currentPattern.includes(index)) {
+                    dot.classList.add('active');
+                    currentPattern.push(index);
+                }
+            }
+        };
+
+        const endDraw = (e) => {
+            if (!isDrawing) return;
+            e.preventDefault();
+            isDrawing = false;
+            polyline.setAttribute('points', currentPattern.map(i => `${dotCoords[i].x},${dotCoords[i].y}`).join(' '));
+            onPatternComplete(currentPattern);
+        };
+
+        const resetPattern = () => {
+            currentPattern = [];
+            dots.forEach(d => d.classList.remove('active'));
+            polyline.setAttribute('points', '');
+        };
+        
+        gridElement.addEventListener('mousedown', startDraw);
+        gridElement.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', endDraw);
+        gridElement.addEventListener('touchstart', startDraw, { passive: false });
+        gridElement.addEventListener('touchmove', draw, { passive: false });
+        gridElement.addEventListener('touchend', endDraw);
+        return resetPattern;
+    }
+
+    let firstPattern = null;
+    let resetSetupGrid;
+
+    resetSetupGrid = initPatternGrid(document.getElementById('pattern-lock-grid-setup'), (pattern) => {
+        if (pattern.length < MIN_PATTERN_LENGTH) {
+            if (pattern.length > 0) showMessage(setupErrorMessage, `Pola minimal ${MIN_PATTERN_LENGTH} titik.`);
+            setTimeout(resetSetupGrid, 500);
+            return;
+        }
+
+        if (!firstPattern) {
+            firstPattern = pattern.join('-');
+            patternInstruction.textContent = 'Gambar ulang pola untuk konfirmasi';
+            setTimeout(resetSetupGrid, 500);
+        } else {
+            if (firstPattern === pattern.join('-')) {
+                localStorage.setItem(LOCK_TYPE_KEY, 'pattern');
+                localStorage.setItem(LOCK_SECRET_KEY, firstPattern);
+                unlockApp();
+            } else {
+                showMessage(setupErrorMessage, 'Pola tidak cocok. Coba lagi.');
+                patternInstruction.textContent = 'Gambar pola kunci (minimal 4 titik)';
+                firstPattern = null;
+                setTimeout(resetSetupGrid, 1000);
+            }
+        }
+    });
+
+    const resetLoginGrid = initPatternGrid(document.getElementById('pattern-lock-grid-login'), (pattern) => {
+        if (pattern.length > 0) {
+            if (pattern.join('-') === localStorage.getItem(LOCK_SECRET_KEY)) {
+                unlockApp();
+            } else {
+                showMessage(loginErrorMessage, 'Pola Salah. Coba lagi.');
+            }
+            setTimeout(resetLoginGrid, 1000);
+        }
+    });
+
+    // --- INISIALISASI APLIKASI ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const lockType = localStorage.getItem(LOCK_TYPE_KEY);
+        if (lockType) {
+            lockApp();
+        } else {
+            securityOverlay.classList.remove('hidden');
+            setupScreen.classList.remove('hidden');
+            lockScreen.classList.add('hidden');
+            setupSecurityTabs();
+        }
+
+        // Event listeners untuk fitur
+        searchPlaceBtn.addEventListener('click', searchPlace);
+        placeInput.addEventListener('keydown', (e) => e.key === 'Enter' && searchPlace());
+        openMapsBtn.addEventListener('click', openCoordsInGmaps);
+        lockAppBtn.addEventListener('click', lockApp);
+        suggestionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const place = placeInput.value.trim();
+                const suggestion = btn.textContent;
+                placeInput.value = place ? `${suggestion} di ${place}` : suggestion;
+                placeInput.focus();
             });
         });
+        
+        // Sisa event listener generator (tidak berubah)
+        generateRandomBtn.addEventListener('click', () => {/* ... */});
+        generateFakeDataBtn.addEventListener('click', () => {/* ... */});
     });
 
     </script>
